@@ -45,6 +45,64 @@ function App() {
           .attr("r", 2)
           .attr("fill", (d: [number, number]) => fillFunction(d, pattern));
 
+    const lineData: [number, number, number, number][] = new Array(100).fill(0).map(_ => {
+      // compute half spaces for machine learning
+      const a = Math.random() * 2 * Math.PI;
+      const ml = {
+        px: Math.random(),
+        py: Math.random(),
+        nx: Math.cos(a),
+        ny: Math.sin(a),
+        b: 0
+      };
+      ml.b = (ml.px * ml.nx) + (ml.py * ml.ny);
+
+      // compute linear intersections with edge for graphics
+      const a2 = a + Math.PI / 2;
+      const t = {
+        x: Math.cos(a2),
+        y: Math.sin(a2),
+      };
+      // st = d
+      // t = d / s
+      const graphics = {
+        x1: ml.px / t.x,
+        y1: ml.py / t.y,
+        x2: (1 - ml.px) / t.x,
+        y2: (1 - ml.py) / t.y,
+        t1: 0,
+        t2: 0,
+      };
+      graphics.t1 = Math.min(Math.abs(graphics.x1), Math.abs(graphics.y1));
+      graphics.t1 *= Math.abs(graphics.x1) === graphics.t1 ? Math.sign(graphics.x1) : Math.sign(graphics.y1);
+      graphics.t2 = Math.min(Math.abs(graphics.x2), Math.abs(graphics.y2));
+      graphics.t2 *= Math.abs(graphics.x2) === graphics.t2 ? Math.sign(graphics.x2) : Math.sign(graphics.y2);
+
+      graphics.x1 = ml.px - graphics.t1 * t.x;
+      graphics.y1 = ml.py - graphics.t1 * t.y;
+      graphics.x2 = ml.px + graphics.t2 * t.x;
+      graphics.y2 = ml.py + graphics.t2 * t.y;
+      graphics.x1 *= 700;
+      graphics.y1 *= 700;
+      graphics.x2 *= 700;
+      graphics.y2 *= 700;
+
+      const mlMath = {
+        ml,
+        graphics
+      };
+      return [
+        graphics.x1, graphics.y1, graphics.x2, graphics.y2
+      ];
+    });
+    svg.selectAll("line").remove();
+    svg.selectAll("line").data(lineData).enter().append("line")
+        .attr("x1", (d: [number, number, number, number, number]) => d[0])
+        .attr("y1", (d: [number, number, number, number, number]) => d[1])
+        .attr("x2", (d: [number, number, number, number, number]) => d[2])
+        .attr("y2", (d: [number, number, number, number, number]) => d[3])
+        .attr("stroke", "black");
+
     console.log("DRAW", pattern);
   }, [pattern]);
   return (
