@@ -2,12 +2,14 @@ import React, {useEffect, useState} from 'react';
 // @ts-ignore
 import * as d3 from 'd3';
 import './App.css';
+import {Site, Vertex, Voronoi} from "voronoijs";
 
 enum ERenderMode {
   POINTS = "POINTS",
   LINES = "LINES",
   TRIANGLES = "TRIANGLES",
-  BOGO = "BOGO"
+  BOGO = "BOGO",
+  VORONOI = "VORONOI",
 }
 
 enum EPattern {
@@ -276,21 +278,41 @@ function App() {
     let triangleSpaces: any = [];
     let endTime = new Date();
     endTime.setSeconds(endTime.getSeconds() + 60);
-    for (; +endTime > +new Date() && bogoData.length < 100;) {
-      const item = GenerateBogoData(halfSpaces, data, triangleSpaces);
-      lineData = item.lineData;
-      triangleData = item.triangleData;
-      triangleBogo = item.triangleBogo;
-      triangleSpaces = item.triangleSpaces;
-      triangleSpaces = triangleSpaces.filter((x: any, i: number) => triangleBogo[i]?.color !== "none")
-      bogoData = triangleBogo.filter((x: any) => x.color !== "none");
-      setNumTrianglesMade(bogoData.length);
-      setTimeLeft(((+endTime - +new Date()) / 1000).toString());
-      await new Promise<void>((resolve) => {
-        setTimeout(() => {
-          resolve();
-        }, 15);
-      });
+    if (renderMode === ERenderMode.VORONOI) {
+      const voronoi = new Voronoi();
+      const sites = data.map((x, i): Site => ({id: i, x: x[0], y: x[1], color: x[2]} as any));
+      const diagram = voronoi.compute(sites, { xl: 0, xr: 700, yt: 0, yb: 700});
+      for (const cell of diagram.cells) {
+        const vertices: Vertex[] = [];
+        cell.prepareHalfedges();
+        for (const halfEdge of cell.halfedges) {
+          vertices.push(halfEdge.getStartpoint());
+        }
+        const vData = vertices.reduce((acc, x) => [...acc, x.x, x.y], [] as number[]);
+        triangleSpaces.push(vData);
+        triangleBogo.push({
+          color: (cell.site as any).color,
+          data: vData,
+        });
+        bogoData = triangleBogo;
+      }
+    } else {
+      for (; +endTime > +new Date() && bogoData.length < 100;) {
+        const item = GenerateBogoData(halfSpaces, data, triangleSpaces);
+        lineData = item.lineData;
+        triangleData = item.triangleData;
+        triangleBogo = item.triangleBogo;
+        triangleSpaces = item.triangleSpaces;
+        triangleSpaces = triangleSpaces.filter((x: any, i: number) => triangleBogo[i]?.color !== "none")
+        bogoData = triangleBogo.filter((x: any) => x.color !== "none");
+        setNumTrianglesMade(bogoData.length);
+        setTimeLeft(((+endTime - +new Date()) / 1000).toString());
+        await new Promise<void>((resolve) => {
+          setTimeout(() => {
+            resolve();
+          }, 15);
+        });
+      }
     }
 
     let svg: any = d3.select(".App").select("svg");
@@ -333,7 +355,19 @@ function App() {
             .attr("cx", (d: [number, number]) => d[0])
             .attr("cy", (d: [number, number]) => d[1])
             .attr("r", 2)
-            .attr("fill", (d: [number, number]) => fillFunction(d, pattern));
+            .attr("fill", (d: [number, number, string]) => d[2]);
+        svg.selectAll("polyline").data(triangleBogo).enter().append("polyline")
+            .attr("points", (d: any) => d.data.join(" "))
+            .attr("fill", (d: any) => d.color)
+            .attr("opacity", () => 0.1);
+        break;
+      }
+      case ERenderMode.VORONOI: {
+        svg.selectAll("circle").data(data).enter().append("circle")
+            .attr("cx", (d: [number, number]) => d[0])
+            .attr("cy", (d: [number, number]) => d[1])
+            .attr("r", 2)
+            .attr("fill", (d: [number, number, string]) => d[2]);
         svg.selectAll("polyline").data(triangleBogo).enter().append("polyline")
             .attr("points", (d: any) => d.data.join(" "))
             .attr("fill", (d: any) => d.color)
@@ -376,6 +410,9 @@ function App() {
         <label>
           <input type="radio" checked={renderMode === ERenderMode.BOGO} value={ERenderMode.BOGO} onChange={() => setRenderMode(ERenderMode.BOGO)}></input>
           <span>Bogo</span></label>
+        <label>
+          <input type="radio" checked={renderMode === ERenderMode.VORONOI} value={ERenderMode.VORONOI} onChange={() => setRenderMode(ERenderMode.VORONOI)}></input>
+          <span>Voronoi</span></label>
       </div>
       <div>
         <label>
