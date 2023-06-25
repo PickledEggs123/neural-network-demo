@@ -28,6 +28,65 @@ interface IHalfSpace {
   a: number;
 }
 
+function GetIntersectionOfTwoHalfSpaces(a: IHalfSpace, b: IHalfSpace) {// compute intersection of half space, interesting
+  const a1 = {
+    px: a.px,
+    py: a.py,
+    vx: Math.cos(a.a + Math.PI / 2),
+    vy: Math.sin(a.a + Math.PI / 2),
+  };
+  const b2 = {
+    px: b.px,
+    py: b.py,
+    vx: Math.cos(b.a + Math.PI / 2),
+    vy: Math.sin(b.a + Math.PI / 2),
+    nx: b.nx,
+    ny: b.ny
+  };
+  const d = {
+    x: a.px - b.px,
+    y: a.py - b.py
+  };
+  const r = {
+    x: a1.vx + b2.vx,
+    y: a1.vy + b2.vy,
+  };
+
+  ///////////////////////////////////////////////////////
+  //
+  //      A ----  Av
+  //      /\     \
+  //        \  |   ----
+  //         \D| Bn     \
+  //          \|         ----\
+  //           B----------------> Bv
+  //
+  ///////////////////////////////////////////////////////
+
+  // distance formula d = st
+  const proj1 = (d.x * b2.nx + d.y * b2.ny);
+  const proj2 = (r.x * b2.nx + r.y * b2.ny);
+  let t = proj1 / proj2;
+  const p = {
+    x: a1.px - t * a1.vx,
+    y: a1.py - t * a1.vy,
+  };
+
+  const verifyA = a.px * a.nx + a.py * a.ny - a.b;
+  const verifyB = b.px * b.nx + b.py * b.ny - b.b;
+  const verify1 = p.x * a.nx + p.y * a.ny - a.b;
+  const verify2 = p.x * b.nx + p.y * b.ny - b.b;
+
+  if (Math.abs(verifyA) > 0.01 || Math.abs(verifyB) > 0.01) {
+    throw new Error("Hyperplane invalid");
+  }
+  if (Math.abs(verify1) > 0.01 || Math.abs(verify2) > 0.01) {
+    throw new Error("Hyperplane rejected intersection, not true intersection");
+  }
+
+  return p;
+}
+
 function GenerateBogoData(halfSpaces: IHalfSpace[], data: [number, number, string][], oldBogoData: Array<IHalfSpace[]>) {
   // construct triangle from 3 half space, note we must intersect planes to generate geometry, this format is
   // optimized for machine learning
@@ -42,12 +101,23 @@ function GenerateBogoData(halfSpaces: IHalfSpace[], data: [number, number, strin
       }
       else {
         const item = halfSpaces[Math.floor(halfSpaces.length * Math.random())];
-        list.push(item);
         if (!list.includes(item)) {
-          const dot = item.nx * list[0].nx + item.ny * list[0].ny;
-          if (dot < -0.7)
-          {
-            list.push(item);
+          if (list[1]) {
+            const p = GetIntersectionOfTwoHalfSpaces(list[0], list[1]);
+            const offset = p.x * item.nx + p.y * item.ny - item.b;
+            if (offset > 0 && offset < 0.05)
+            {
+              list.push(item);
+            } else {
+              list.push(item);
+            }
+          }
+          else if (list[0]) {
+            const dot = item.nx * list[0].nx + item.ny * list[0].ny;
+            if (Math.abs(dot) > 0.45 && Math.abs(dot) < 0.55)
+            {
+              list.push(item);
+            }
           }
         }
       }
@@ -111,61 +181,7 @@ function GenerateBogoData(halfSpaces: IHalfSpace[], data: [number, number, strin
       const a = mls[i % mls.length];
       const b = mls[(i + 1) % mls.length];
 
-      // compute intersection of half space, interesting
-      const a1 = {
-        px: a.px,
-        py: a.py,
-        vx: Math.cos(a.a + Math.PI / 2),
-        vy: Math.sin(a.a + Math.PI / 2),
-      };
-      const b2 = {
-        px: b.px,
-        py: b.py,
-        vx: Math.cos(b.a + Math.PI / 2),
-        vy: Math.sin(b.a + Math.PI / 2),
-        nx: b.nx,
-        ny: b.ny
-      };
-      const d = {
-        x: a.px - b.px,
-        y: a.py - b.py
-      };
-      const r = {
-        x: a1.vx + b2.vx,
-        y: a1.vy + b2.vy,
-      };
-
-      ///////////////////////////////////////////////////////
-      //
-      //      A ----  Av
-      //      /\     \
-      //        \  |   ----
-      //         \D| Bn     \
-      //          \|         ----\
-      //           B----------------> Bv
-      //
-      ///////////////////////////////////////////////////////
-
-      // distance formula d = st
-      const proj1 = (d.x * b2.nx + d.y * b2.ny);
-      const proj2 = (r.x * b2.nx + r.y * b2.ny);
-      let t = proj1 / proj2;
-      const p = {
-        x: a1.px - t * a1.vx,
-        y: a1.py - t * a1.vy,
-      };
-
-      const verifyA = a.px * a.nx + a.py * a.ny - a.b;
-      const verifyB = b.px * b.nx + b.py * b.ny - b.b;
-      const verify1 = p.x * a.nx + p.y * a.ny - a.b;
-      const verify2 = p.x * b.nx + p.y * b.ny - b.b;
-
-      if (Math.abs(verifyA) > 0.01 || Math.abs(verifyB) > 0.01) {
-        throw new Error("Hyperplane invalid");
-      }
-      if (Math.abs(verify1) > 0.01 || Math.abs(verify2) > 0.01) {
-        throw new Error("Hyperplane rejected intersection, not true intersection");
-      }
+      const p = GetIntersectionOfTwoHalfSpaces(a, b);
 
       // insert point
       points.push(p.x * 700, p.y * 700);
@@ -186,16 +202,11 @@ function GenerateBogoData(halfSpaces: IHalfSpace[], data: [number, number, strin
       if (mls.every(h => dataItem[0] * h.nx + dataItem[1] * h.ny - h.b >= 0)) {
         if (dataItem[2] === "red") {
           item.red += 1;
+          item.blue -= 2;
         }
         if (dataItem[2] === "blue") {
           item.blue += 1;
-        }
-      } else {
-        if (dataItem[2] === "red") {
-          item.red -= 1;
-        }
-        if (dataItem[2] === "blue") {
-          item.blue -= 1;
+          item.red -= 2;
         }
       }
     }
