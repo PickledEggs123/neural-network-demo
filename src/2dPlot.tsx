@@ -3,6 +3,7 @@ import React, {useEffect, useState} from 'react';
 import * as d3 from 'd3';
 import './App.css';
 import {Site, Vertex, Voronoi} from "voronoijs";
+import {RootLayout} from "./RootLayout";
 
 enum ERenderMode {
   POINTS = "POINTS",
@@ -405,43 +406,43 @@ function Plot2dPage() {
     wrapLongTask(renderMode, pattern);
   }, [renderMode, pattern]);
   return (
-    <div className="App">
-      <h1>Neural Network Demo</h1>
-      <h3>by Tyler T</h3>
-      <div>
-        <label>
-          <input type="radio" checked={renderMode === ERenderMode.POINTS} value={ERenderMode.POINTS} onChange={() => setRenderMode(ERenderMode.POINTS)}></input>
-          <span>Points</span></label>
-        <label>
-          <input type="radio" checked={renderMode === ERenderMode.LINES} value={ERenderMode.LINES} onChange={() => setRenderMode(ERenderMode.LINES)}></input>
-          <span>Lines</span></label>
-        <label>
-          <input type="radio" checked={renderMode === ERenderMode.TRIANGLES} value={ERenderMode.TRIANGLES} onChange={() => setRenderMode(ERenderMode.TRIANGLES)}></input>
-          <span>Triangles</span></label>
-        <label>
-          <input type="radio" checked={renderMode === ERenderMode.BOGO} value={ERenderMode.BOGO} onChange={() => setRenderMode(ERenderMode.BOGO)}></input>
-          <span>Bogo</span></label>
-        <label>
-          <input type="radio" checked={renderMode === ERenderMode.VORONOI} value={ERenderMode.VORONOI} onChange={() => setRenderMode(ERenderMode.VORONOI)}></input>
-          <span>Voronoi</span></label>
-      </div>
-      <div>
-        <label>
-          <input type="radio" checked={pattern === EPattern.RANDOM} value={EPattern.RANDOM} onChange={() => setPattern(EPattern.RANDOM)}></input>
-          <span>Random</span></label>
-        <label>
-          <input type="radio" checked={pattern === EPattern.CHECKER} value={EPattern.CHECKER} onChange={() => setPattern(EPattern.CHECKER)}></input>
-          <span>Checker</span></label>
-        <label>
-          <input type="radio" checked={pattern === EPattern.STRIPE} value={EPattern.STRIPE} onChange={() => setPattern(EPattern.STRIPE)}></input>
-          <span>Stripe</span></label>
-        <label>
-          <input type="radio" checked={pattern === EPattern.CIRCLE} value={EPattern.CIRCLE} onChange={() => setPattern(EPattern.CIRCLE)}></input>
-          <span>Circle</span></label>
-      </div>
-      <div>Number of Triangles Generated: {numTrianglesMade}</div>
-      <div>Time Left: {timeLeft}</div>
-    </div>
+      <RootLayout>
+        <h3>Plotting with neural networks</h3>
+        <p>This page shows plotting using netural networks which is a complete mess. Neural networks attempt to create triangles from randomly selected line segments and almost always, the triangles are terrible at sorting the dots. Support Vector Machine using Voronoi Tesselation works best for plotting.</p>
+        <div>
+          <label>
+            <input type="radio" checked={renderMode === ERenderMode.POINTS} value={ERenderMode.POINTS} onChange={() => setRenderMode(ERenderMode.POINTS)}></input>
+            <span>Points</span></label>
+          <label>
+            <input type="radio" checked={renderMode === ERenderMode.LINES} value={ERenderMode.LINES} onChange={() => setRenderMode(ERenderMode.LINES)}></input>
+            <span>Lines</span></label>
+          <label>
+            <input type="radio" checked={renderMode === ERenderMode.TRIANGLES} value={ERenderMode.TRIANGLES} onChange={() => setRenderMode(ERenderMode.TRIANGLES)}></input>
+            <span>Triangles</span></label>
+          <label>
+            <input type="radio" checked={renderMode === ERenderMode.BOGO} value={ERenderMode.BOGO} onChange={() => setRenderMode(ERenderMode.BOGO)}></input>
+            <span>Bogo</span></label>
+          <label>
+            <input type="radio" checked={renderMode === ERenderMode.VORONOI} value={ERenderMode.VORONOI} onChange={() => setRenderMode(ERenderMode.VORONOI)}></input>
+            <span>Voronoi</span></label>
+        </div>
+        <div>
+          <label>
+            <input type="radio" checked={pattern === EPattern.RANDOM} value={EPattern.RANDOM} onChange={() => setPattern(EPattern.RANDOM)}></input>
+            <span>Random</span></label>
+          <label>
+            <input type="radio" checked={pattern === EPattern.CHECKER} value={EPattern.CHECKER} onChange={() => setPattern(EPattern.CHECKER)}></input>
+            <span>Checker</span></label>
+          <label>
+            <input type="radio" checked={pattern === EPattern.STRIPE} value={EPattern.STRIPE} onChange={() => setPattern(EPattern.STRIPE)}></input>
+            <span>Stripe</span></label>
+          <label>
+            <input type="radio" checked={pattern === EPattern.CIRCLE} value={EPattern.CIRCLE} onChange={() => setPattern(EPattern.CIRCLE)}></input>
+            <span>Circle</span></label>
+        </div>
+        <div>Number of Triangles Generated: {numTrianglesMade}</div>
+        <div>Time Left: {timeLeft}</div>
+      </RootLayout>
   );
 }
 

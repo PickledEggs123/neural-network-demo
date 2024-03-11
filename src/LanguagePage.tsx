@@ -1,7 +1,6 @@
 import React, {useEffect, useState} from 'react';
-// @ts-ignore
-import * as d3 from 'd3';
 import './App.css';
+import {RootLayout} from "./RootLayout";
 
 /**
  * Returns a hash code from a string
@@ -47,11 +46,20 @@ const convertTextIntoHashcodes = (text: string): IDictData => {
         markovChain[hashChain[i]][hashChain[i + 1]] += 1;
     }
 
-    const sum = hashDict.reduce((acc, i) => acc, 1);
+    const sum = hashDict.reduce((acc) => acc + 1, 1);
     return {
         hashDict: hashDict.map(i => i / sum),
         markovChain: markovChain.map(i => i.map(j => j / sum)),
         hashChain,
+    };
+};
+
+const combineHashcodes = (a: IDictData, b: IDictData): IDictData => {
+    const sum = a.hashDict.reduce((acc) => acc + 1, 1) + b.hashDict.reduce((acc) => acc + 1, 1);
+    return {
+        hashDict: a.hashDict.map((v, i) => (v + b.hashDict[i]) / sum),
+        markovChain: a.markovChain.map((v1, i) => v1.map((v2, j) => (v2 + b.markovChain[i][j]) / sum)),
+        hashChain: a.hashChain.map((v, i) => v + b.hashChain[i]),
     };
 };
 
@@ -82,55 +90,82 @@ const buildSpanishDict = async (): Promise<IDictData> => {
     text2 = lines2.join('\n');
     return convertTextIntoHashcodes(text + text2);
 };
+const buildFrenchDict = async (): Promise<IDictData> => {
+    const req = await fetch("/books/le-infernale.txt");
+    let text = await req.text();
+    const lines = text.split('\n');
+    lines.splice(0, 26);
+    text = lines.join('\n');
+    return convertTextIntoHashcodes(text);
+};
+const buildVietnameseDict = async (): Promise<IDictData> => {
+    const req = await fetch("/books/East-Side-Union-High-School Distric-vietnamese-book.txt");
+    let text = await req.text();
+    const lines = text.split('\n');
+    lines.splice(0, 26);
+    text = lines.join('\n');
+    return convertTextIntoHashcodes(text);
+};
 
-const buildTwoClassDetector = async (): Promise<IDictData> => {
+const buildTwoClassDetector = async (): Promise<{[key: string]: IDictData}> => {
     const english = await buildEnglishDict();
     const spanish = await buildSpanishDict();
+    const french = await buildFrenchDict();
+    const vietnamese = await buildVietnameseDict();
 
-    // level 1 neural network
-    const englishLogisticRegression = new Array(english.hashDict.length).fill(0);
-    for (let i = 0; i < englishLogisticRegression.length; i++) {
-        const englishCount = english.hashDict[i];
-        const spanishCount = spanish.hashDict[i];
-        if (englishCount > spanishCount * 2) {
-            englishLogisticRegression[i] = Math.log10(englishCount - spanishCount);
-        }
-        if (spanishCount > englishCount * 2) {
-            englishLogisticRegression[i] = -(Math.log10(spanishCount - englishCount));
-        }
-    }
-    const logPositive = englishLogisticRegression.reduce((a, i) => a + (i > 0 ? i : 0), 0);
-    const logNegative = -englishLogisticRegression.reduce((a, i) => a + (i < 0 ? i : 0), 0);
-    for (let i = 0; i < englishLogisticRegression.length; i++) {
-        englishLogisticRegression[i] = englishLogisticRegression[i] > 0 ? englishLogisticRegression[i] / logPositive : englishLogisticRegression[i] / logNegative;
-    }
-
-    // level 2 neural network
-    const englishMarkovRegression: number[][] = new Array(english.markovChain.length).fill(0).map(() => new Array(english.markovChain.length).fill(0));
-    for (let i = 0; i < englishMarkovRegression.length; i++) {
-        for (let j = 0; j < englishMarkovRegression[i].length; j++) {
-            const englishCount = english.markovChain[i][j];
-            const spanishCount = spanish.markovChain[i][j];
+    const buildMainDetector = (main: IDictData, other: IDictData): IDictData => {
+        // level 1 neural network
+        const englishLogisticRegression = new Array(main.hashDict.length).fill(0);
+        for (let i = 0; i < englishLogisticRegression.length; i++) {
+            const englishCount = main.hashDict[i];
+            const spanishCount = other.hashDict[i];
             if (englishCount > spanishCount * 2) {
-                englishMarkovRegression[i][j] = Math.log10(englishCount - spanishCount);
+                englishLogisticRegression[i] = Math.log10(englishCount - spanishCount);
             }
             if (spanishCount > englishCount * 2) {
-                englishMarkovRegression[i][j] = -(Math.log10(spanishCount - englishCount));
+                englishLogisticRegression[i] = -(Math.log10(spanishCount - englishCount));
             }
         }
-    }
-    const markovPositive = englishMarkovRegression.reduce((a, i) => i.reduce((b, j) => b + (j > 0 ? j : 0), 0), 0);
-    const markovNegative = -englishMarkovRegression.reduce((a, i) => i.reduce((b, j) => b + (j < 0 ? j : 0), 0), 0);
-    for (let i = 0; i < englishMarkovRegression.length; i++) {
-        for (let j = 0; j < englishMarkovRegression[i].length; j++) {
-            englishMarkovRegression[i][j] = englishMarkovRegression[i][j] > 0 ? englishMarkovRegression[i][j] / markovPositive : englishMarkovRegression[i][j] / markovNegative;
+        const logPositive = englishLogisticRegression.reduce((a, i) => a + (i > 0 ? i : 0), 0);
+        const logNegative = -englishLogisticRegression.reduce((a, i) => a + (i < 0 ? i : 0), 0);
+        for (let i = 0; i < englishLogisticRegression.length; i++) {
+            englishLogisticRegression[i] = englishLogisticRegression[i] > 0 ? englishLogisticRegression[i] / logPositive : englishLogisticRegression[i] / logNegative;
         }
-    }
+
+        // level 2 neural network
+        const englishMarkovRegression: number[][] = new Array(main.markovChain.length).fill(0).map(() => new Array(main.markovChain.length).fill(0));
+        for (let i = 0; i < englishMarkovRegression.length; i++) {
+            for (let j = 0; j < englishMarkovRegression[i].length; j++) {
+                const englishCount = main.markovChain[i][j];
+                const spanishCount = other.markovChain[i][j];
+                if (englishCount > spanishCount * 2) {
+                    englishMarkovRegression[i][j] = Math.log10(englishCount - spanishCount);
+                }
+                if (spanishCount > englishCount * 2) {
+                    englishMarkovRegression[i][j] = -(Math.log10(spanishCount - englishCount));
+                }
+            }
+        }
+        const markovPositive = englishMarkovRegression.reduce((a, i) => i.reduce((b, j) => b + (j > 0 ? j : 0), 0), 0);
+        const markovNegative = -englishMarkovRegression.reduce((a, i) => i.reduce((b, j) => b + (j < 0 ? j : 0), 0), 0);
+        for (let i = 0; i < englishMarkovRegression.length; i++) {
+            for (let j = 0; j < englishMarkovRegression[i].length; j++) {
+                englishMarkovRegression[i][j] = englishMarkovRegression[i][j] > 0 ? englishMarkovRegression[i][j] / markovPositive : englishMarkovRegression[i][j] / markovNegative;
+            }
+        }
+
+        return {
+            hashDict: englishLogisticRegression,
+            markovChain: englishMarkovRegression,
+            hashChain: [],
+        };
+    };
 
     return {
-        hashDict: englishLogisticRegression,
-        markovChain: englishMarkovRegression,
-        hashChain: [],
+        english: buildMainDetector(english, combineHashcodes(spanish, combineHashcodes(french, vietnamese))),
+        spanish: buildMainDetector(spanish, combineHashcodes(english, combineHashcodes(french, vietnamese))),
+        french: buildMainDetector(french, combineHashcodes(spanish, combineHashcodes(english, vietnamese))),
+        vietnamese: buildMainDetector(vietnamese, combineHashcodes(spanish, combineHashcodes(french, english))),
     };
 };
 
@@ -138,7 +173,7 @@ function LanguagePage() {
   const [textValue, setTextValue] = useState("");
   const [languageDetected, setLanguageDetected] = useState("");
 
-  const [context] = useState<{twoClassDetector: Promise<IDictData> | null }>({
+  const [context] = useState<{twoClassDetector: Promise<{[key: string]: IDictData}> | null }>({
       twoClassDetector: null
   });
   useEffect(() => {
@@ -153,38 +188,53 @@ function LanguagePage() {
     const hashDict = convertTextIntoHashcodes(text);
 
     const classifier = await context.twoClassDetector!;
-    let sum1 = 0;
-    for (let i = 0; i < classifier.hashDict.length; i++) {
-        sum1 += classifier.hashDict[i] * hashDict.hashDict[i];
-    }
-    let sum2 = 0;
-    for (let i = 0; i < hashDict.hashChain.length - 2; i++) {
-        const x = hashDict.hashChain[i];
-        const y = hashDict.hashChain[i + 1];
-        sum2 += classifier.markovChain[x][y];
-    }
-    const sum = sum1 + sum2;
-    if (sum >= 0) {
-        setLanguageDetected(`English; regression ${sum1.toPrecision(3)}; markov ${sum2.toPrecision(3)}; total ${sum.toPrecision(3)}`);
-    } else {
-        setLanguageDetected(`Spanish; regression ${sum1.toPrecision(3)}; markov ${sum2.toPrecision(3)}; total ${sum.toPrecision(3)}`);
+    const detectLanguage = (key: string): number => {
+        let sum1 = 0;
+        for (let i = 0; i < classifier[key].hashDict.length; i++) {
+            sum1 += classifier[key].hashDict[i] * hashDict.hashDict[i];
+        }
+        let sum2 = 0;
+        for (let i = 0; i < hashDict.hashChain.length - 2; i++) {
+            const x = hashDict.hashChain[i];
+            const y = hashDict.hashChain[i + 1];
+            sum2 += classifier[key].markovChain[x][y];
+        }
+        const sum = sum1 + sum2;
+        return sum;
+    };
+
+    const englishSum = detectLanguage("english");
+    const spanishSum = detectLanguage("spanish");
+    const frenchSum = detectLanguage("french");
+    const vietnameseSum = detectLanguage("vietnamese");
+    const sumArray = [englishSum, spanishSum, frenchSum, vietnameseSum];
+    const maxValue = sumArray.reduce((acc, v) => Math.max(acc, v), Number.NEGATIVE_INFINITY);
+    const maxIndex = sumArray.indexOf(maxValue);
+    if (maxIndex === 0) {
+        setLanguageDetected(`English; regression ${englishSum.toPrecision(3)}; markov ${englishSum.toPrecision(3)}; total ${englishSum.toPrecision(3)}`);
+    } else if (maxIndex === 1) {
+        setLanguageDetected(`Spanish; regression ${spanishSum.toPrecision(3)}; markov ${spanishSum.toPrecision(3)}; total ${spanishSum.toPrecision(3)}`);
+    } else if (maxIndex === 2) {
+        setLanguageDetected(`French; regression ${frenchSum.toPrecision(3)}; markov ${frenchSum.toPrecision(3)}; total ${frenchSum.toPrecision(3)}`);
+    } else if (maxIndex === 3) {
+        setLanguageDetected(`Vietnamese; regression ${vietnameseSum.toPrecision(3)}; markov ${vietnameseSum.toPrecision(3)}; total ${vietnameseSum.toPrecision(3)}`);
     }
   };
 
   return (
-    <div className="App">
-      <h1>Neural Network Demo</h1>
-      <h3>by Tyler T</h3>
-        <div>
-            <textarea rows={5} cols={80} value={textValue} onChange={(e) => setTextValue(e.target.value)} placeholder="Please type here, Por favor escriba aquí"></textarea>
-        </div>
-        <div>
-            <button onClick={() => detectLanguage(textValue)}>Detect Language</button>
-        </div>
-        <div>
-            Found the language: {languageDetected}
-        </div>
-    </div>
+      <RootLayout>
+          <h3>Language Detection</h3>
+          <p>This page can detect English, Spanish, French, or Vietnamese phrases. Please try "five elephants walking" or "cinco elefantes caminando" or "manger un croissant" or "nam con voi dang di dao".</p>
+          <div>
+              <textarea rows={5} cols={80} value={textValue} onChange={(e) => setTextValue(e.target.value)} placeholder="Please type here, Por favor escriba aquí"></textarea>
+          </div>
+          <div>
+              <button onClick={() => detectLanguage(textValue)}>Detect Language</button>
+          </div>
+          <div>
+              Found the language: {languageDetected}
+          </div>
+      </RootLayout>
   );
 }
 
