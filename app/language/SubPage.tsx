@@ -66,12 +66,12 @@ const combineHashcodes = (a: IDictData, b: IDictData): IDictData => {
 
 
 const buildEnglishDict = async (): Promise<IDictData> => {
-    const req = await fetch("/the-jungle.txt");
+    const req = await fetch("/books/the-jungle.txt");
     let text = await req.text();
     const lines = text.split('\n');
     lines.splice(0, 26);
     text = lines.join('\n');
-    const req2 = await fetch("/divine-comedy-2.txt");
+    const req2 = await fetch("/books/divine-comedy-2.txt");
     let text2 = await req2.text();
     const lines2 = text.split('\n');
     lines2.splice(0, 26);
@@ -79,12 +79,12 @@ const buildEnglishDict = async (): Promise<IDictData> => {
     return convertTextIntoHashcodes(text + text2);
 };
 const buildSpanishDict = async (): Promise<IDictData> => {
-    const req = await fetch("/don-quijote.txt");
+    const req = await fetch("/books/don-quijote.txt");
     let text = await req.text();
     const lines = text.split('\n');
     lines.splice(0, 26);
     text = lines.join('\n');
-    const req2 = await fetch("/divine-comedy.txt");
+    const req2 = await fetch("/books/divine-comedy.txt");
     let text2 = await req2.text();
     const lines2 = text.split('\n');
     lines2.splice(0, 26);
@@ -92,7 +92,7 @@ const buildSpanishDict = async (): Promise<IDictData> => {
     return convertTextIntoHashcodes(text + text2);
 };
 const buildFrenchDict = async (): Promise<IDictData> => {
-    const req = await fetch("/le-infernale.txt");
+    const req = await fetch("/books/le-infernale.txt");
     let text = await req.text();
     const lines = text.split('\n');
     lines.splice(0, 26);
@@ -100,7 +100,7 @@ const buildFrenchDict = async (): Promise<IDictData> => {
     return convertTextIntoHashcodes(text);
 };
 const buildVietnameseDict = async (): Promise<IDictData> => {
-    const req = await fetch("/East-Side-Union-High-School Distric-vietnamese-book.txt");
+    const req = await fetch("/books/East-Side-Union-High-School Distric-vietnamese-book.txt");
     let text = await req.text();
     const lines = text.split('\n');
     lines.splice(0, 26);
