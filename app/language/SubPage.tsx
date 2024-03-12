@@ -225,7 +225,7 @@ function Page() {
     return (
         <>
             <h3>Language Detection</h3>
-            <p>This page can detect English, Spanish, French, or Vietnamese phrases. Please try "five elephants walking" or "cinco elefantes caminando" or "manger un croissant" or "nam con voi dang di dao".</p>
+            <p>This page can detect English, Spanish, French, or Vietnamese phrases. Please try &ldquo;five elephants walking&rdquo; or &ldquo;cinco elefantes caminando&rdquo; or &ldquo;manger un croissant&rdquo; or &ldquo;nam con voi dang di dao&rdquo;.</p>
             <div>
                 <textarea rows={5} cols={80} value={textValue} onChange={(e) => setTextValue(e.target.value)} placeholder="Please type here, Por favor escriba aquí"></textarea>
             </div>
