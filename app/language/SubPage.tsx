@@ -1,6 +1,7 @@
+"use client";
+
 import React, {useEffect, useState} from 'react';
-import './App.css';
-import {RootLayout} from "./RootLayout";
+import {RootLayout} from "../components/RootLayout";
 
 /**
  * Returns a hash code from a string
@@ -169,73 +170,73 @@ const buildTwoClassDetector = async (): Promise<{[key: string]: IDictData}> => {
     };
 };
 
-function LanguagePage() {
-  const [textValue, setTextValue] = useState("");
-  const [languageDetected, setLanguageDetected] = useState("");
+function Page() {
+    const [textValue, setTextValue] = useState("");
+    const [languageDetected, setLanguageDetected] = useState("");
 
-  const [context] = useState<{twoClassDetector: Promise<{[key: string]: IDictData}> | null }>({
-      twoClassDetector: null
-  });
-  useEffect(() => {
-      context.twoClassDetector = buildTwoClassDetector();
+    const [context] = useState<{twoClassDetector: Promise<{[key: string]: IDictData}> | null }>({
+        twoClassDetector: null
+    });
+    useEffect(() => {
+        context.twoClassDetector = buildTwoClassDetector();
 
-      return () => {
-      };
-  }, [])
+        return () => {
+        };
+    }, [])
 
-  const detectLanguage = async (text: string) => {
-    setLanguageDetected("");
-    const hashDict = convertTextIntoHashcodes(text);
+    const detectLanguage = async (text: string) => {
+        setLanguageDetected("");
+        const hashDict = convertTextIntoHashcodes(text);
 
-    const classifier = await context.twoClassDetector!;
-    const detectLanguage = (key: string): number => {
-        let sum1 = 0;
-        for (let i = 0; i < classifier[key].hashDict.length; i++) {
-            sum1 += classifier[key].hashDict[i] * hashDict.hashDict[i];
+        const classifier = await context.twoClassDetector!;
+        const detectLanguage = (key: string): number => {
+            let sum1 = 0;
+            for (let i = 0; i < classifier[key].hashDict.length; i++) {
+                sum1 += classifier[key].hashDict[i] * hashDict.hashDict[i];
+            }
+            let sum2 = 0;
+            for (let i = 0; i < hashDict.hashChain.length - 2; i++) {
+                const x = hashDict.hashChain[i];
+                const y = hashDict.hashChain[i + 1];
+                sum2 += classifier[key].markovChain[x][y];
+            }
+            const sum = sum1 + sum2;
+            return sum;
+        };
+
+        const englishSum = detectLanguage("english");
+        const spanishSum = detectLanguage("spanish");
+        const frenchSum = detectLanguage("french");
+        const vietnameseSum = detectLanguage("vietnamese");
+        const sumArray = [englishSum, spanishSum, frenchSum, vietnameseSum];
+        const maxValue = sumArray.reduce((acc, v) => Math.max(acc, v), Number.NEGATIVE_INFINITY);
+        const maxIndex = sumArray.indexOf(maxValue);
+        if (maxIndex === 0) {
+            setLanguageDetected(`English; regression ${englishSum.toPrecision(3)}; markov ${englishSum.toPrecision(3)}; total ${englishSum.toPrecision(3)}`);
+        } else if (maxIndex === 1) {
+            setLanguageDetected(`Spanish; regression ${spanishSum.toPrecision(3)}; markov ${spanishSum.toPrecision(3)}; total ${spanishSum.toPrecision(3)}`);
+        } else if (maxIndex === 2) {
+            setLanguageDetected(`French; regression ${frenchSum.toPrecision(3)}; markov ${frenchSum.toPrecision(3)}; total ${frenchSum.toPrecision(3)}`);
+        } else if (maxIndex === 3) {
+            setLanguageDetected(`Vietnamese; regression ${vietnameseSum.toPrecision(3)}; markov ${vietnameseSum.toPrecision(3)}; total ${vietnameseSum.toPrecision(3)}`);
         }
-        let sum2 = 0;
-        for (let i = 0; i < hashDict.hashChain.length - 2; i++) {
-            const x = hashDict.hashChain[i];
-            const y = hashDict.hashChain[i + 1];
-            sum2 += classifier[key].markovChain[x][y];
-        }
-        const sum = sum1 + sum2;
-        return sum;
     };
 
-    const englishSum = detectLanguage("english");
-    const spanishSum = detectLanguage("spanish");
-    const frenchSum = detectLanguage("french");
-    const vietnameseSum = detectLanguage("vietnamese");
-    const sumArray = [englishSum, spanishSum, frenchSum, vietnameseSum];
-    const maxValue = sumArray.reduce((acc, v) => Math.max(acc, v), Number.NEGATIVE_INFINITY);
-    const maxIndex = sumArray.indexOf(maxValue);
-    if (maxIndex === 0) {
-        setLanguageDetected(`English; regression ${englishSum.toPrecision(3)}; markov ${englishSum.toPrecision(3)}; total ${englishSum.toPrecision(3)}`);
-    } else if (maxIndex === 1) {
-        setLanguageDetected(`Spanish; regression ${spanishSum.toPrecision(3)}; markov ${spanishSum.toPrecision(3)}; total ${spanishSum.toPrecision(3)}`);
-    } else if (maxIndex === 2) {
-        setLanguageDetected(`French; regression ${frenchSum.toPrecision(3)}; markov ${frenchSum.toPrecision(3)}; total ${frenchSum.toPrecision(3)}`);
-    } else if (maxIndex === 3) {
-        setLanguageDetected(`Vietnamese; regression ${vietnameseSum.toPrecision(3)}; markov ${vietnameseSum.toPrecision(3)}; total ${vietnameseSum.toPrecision(3)}`);
-    }
-  };
-
-  return (
-      <RootLayout>
-          <h3>Language Detection</h3>
-          <p>This page can detect English, Spanish, French, or Vietnamese phrases. Please try "five elephants walking" or "cinco elefantes caminando" or "manger un croissant" or "nam con voi dang di dao".</p>
-          <div>
-              <textarea rows={5} cols={80} value={textValue} onChange={(e) => setTextValue(e.target.value)} placeholder="Please type here, Por favor escriba aquí"></textarea>
-          </div>
-          <div>
-              <button onClick={() => detectLanguage(textValue)}>Detect Language</button>
-          </div>
-          <div>
-              Found the language: {languageDetected}
-          </div>
-      </RootLayout>
-  );
+    return (
+        <>
+            <h3>Language Detection</h3>
+            <p>This page can detect English, Spanish, French, or Vietnamese phrases. Please try "five elephants walking" or "cinco elefantes caminando" or "manger un croissant" or "nam con voi dang di dao".</p>
+            <div>
+                <textarea rows={5} cols={80} value={textValue} onChange={(e) => setTextValue(e.target.value)} placeholder="Please type here, Por favor escriba aquí"></textarea>
+            </div>
+            <div>
+                <button onClick={() => detectLanguage(textValue)}>Detect Language</button>
+            </div>
+            <div>
+                Found the language: {languageDetected}
+            </div>
+        </>
+    );
 }
 
-export default LanguagePage;
+export default Page;
