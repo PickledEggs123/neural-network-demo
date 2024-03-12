@@ -9,7 +9,7 @@ export default function ClientRootLayout() {
 
     return (
         <div>
-            <Link href={"/"}><button style={{color: "white", background: pathname === "/" ? "blue" : "black"}}>About</button></Link>&nbsp;*&nbsp;
+            <Link href={"/about"}><button style={{color: "white", background: pathname === "/about" ? "blue" : "black"}}>About</button></Link>&nbsp;*&nbsp;
             <Link href={"/plot"}><button style={{color: "white", background: pathname === "/plot" ? "blue" : "black"}}>Plot</button></Link>&nbsp;*&nbsp;
             <Link href={"/language"}><button style={{color: "white", background: pathname === "/language" ? "blue" : "black"}}>Language</button></Link>
         </div>
