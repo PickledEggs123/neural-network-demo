@@ -1,19 +1,19 @@
 # Get NPM packages
-FROM node:14-alpine AS dependencies
+FROM node:21-alpine3.18 AS dependencies
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm i
 
 # Rebuild the source code only when needed
-FROM node:14-alpine AS builder
+FROM node:21-alpine3.18 AS builder
 WORKDIR /app
 COPY . .
 COPY --from=dependencies /app/node_modules ./node_modules
 RUN npm run build
 
 # Production image, copy all the files and run next
-FROM node:14-alpine AS runner
+FROM node:21-alpine3.18 AS runner
 WORKDIR /app
 
 ENV NODE_ENV production
