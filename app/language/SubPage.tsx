@@ -27,7 +27,7 @@ interface IDictData {
 
 // first level neural network which detect 3 letter pairs
 const convertTextIntoHashcodes = (text: string): IDictData => {
-    text = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    text = text.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
     text = text.toLowerCase();
     const size = 256;
     const hashDict = new Array(size).fill(0); // 8kb = 1k * 8b;
