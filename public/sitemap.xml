@@ -1,0 +1,17 @@
+<!-- public/sitemap.xml -->
+<xml version="1.0" encoding="UTF-8">
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+        <url>
+            <loc>https://tyler-truong-ml-demo.com/</loc>
+        </url>
+        <url>
+            <loc>https://tyler-truong-ml-demo.com/about</loc>
+        </url>
+        <url>
+            <loc>https://tyler-truong-ml-demo.com/plot</loc>
+        </url>
+        <url>
+            <loc>https://tyler-truong-ml-demo.com/language</loc>
+        </url>
+    </urlset>
+</xml>
